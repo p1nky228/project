@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     # Telegram Bot
     BOT_TOKEN: str = ""
     BOT_WEBHOOK_URL: Optional[str] = None
+    BOT_USE_POLLING: bool = False  # True for local dev without webhook
 
     # S3 Storage
     S3_ENDPOINT_URL: str = ""

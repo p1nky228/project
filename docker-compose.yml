@@ -87,6 +87,33 @@ services:
     depends_on:
       - backend
 
+  bot:
+    build:
+      context: ./backend/maintenance_module
+      dockerfile: Dockerfile
+    container_name: vending_bot
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://vending_user:vending_pass@db:5432/vending
+      - REDIS_URL=redis://redis:6379/0
+      - S3_ENDPOINT_URL=http://seaweedfs:9000
+      - S3_ACCESS_KEY=minioadmin
+      - S3_SECRET_KEY=minioadmin
+      - S3_BUCKET_NAME=vending-photos
+      - S3_REGION=us-east-1
+      - BOT_USE_POLLING=true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+    volumes:
+      - ./backend/maintenance_module:/app
+    command: python -m app.bot.runner --polling
+
 volumes:
   postgres_data:
   redis_data:
