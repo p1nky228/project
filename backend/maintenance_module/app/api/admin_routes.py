@@ -26,7 +26,7 @@ from app.models.apparatus import Apparatus, ApparatusStatus
 from app.models.technician import Technician, TechnicianRole
 from app.models.to_task import TOTask, TOTaskStatus
 from app.models.to_photo import TOPhoto
-from app.services import get_minio_client
+from app.services import get_s3_client
 from app.core.config import settings
 from fastapi import Header
 
@@ -189,12 +189,12 @@ async def get_task_details(
         )
 
     # Генерируем presigned URL для фото
-    minio_client = get_minio_client()
+    s3_client = get_s3_client()
     photos_with_urls = []
 
     for photo in task.photos:
         try:
-            presigned_url = minio_client.get_file_url(photo.s3_key, expires=3600)
+            presigned_url = s3_client.get_file_url(photo.s3_key, expires=3600)
             photos_with_urls.append({
                 "id": str(photo.id),
                 "step_number": photo.step_number,

@@ -9,7 +9,7 @@ from uuid import UUID
 from aiogram.types import PhotoSize
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.minio_client import MinIOClient
+from app.services.s3_client import S3Client
 
 
 def validate_gps(
@@ -59,27 +59,27 @@ def validate_gps(
     return distance <= max_distance
 
 
-async def upload_photo_to_minio(
+async def upload_photo_to_s3(
     photo: PhotoSize,
     task_id: UUID,
     step: int,
-    minio_client: MinIOClient,
+    s3_client: S3Client,
     bot,  # Bot instance required - avoids Bot.get_current() returning None
     max_retries: int = 3
 ) -> Optional[str]:
     """
-    Загружает фото в MinIO с повторными попытками.
+    Загружает фото в S3-совместимое хранилище (SeaweedFS, MinIO, AWS S3) с повторными попытками.
 
     Args:
         photo: Объект PhotoSize от Telegram (последний/наибольший размер)
         task_id: ID задания ТО
         step: Номер шага (1-7)
-        minio_client: Клиент MinIO
+        s3_client: Клиент S3
         bot: Экземпляр Bot (обязательный, чтобы избежать None от Bot.get_current())
         max_retries: Максимальное количество попыток загрузки
 
     Returns:
-        s3_key (путь в MinIO) или None при ошибке
+        s3_key (путь в S3) или None при ошибке
     """
     if bot is None:
         import logging
@@ -98,8 +98,8 @@ async def upload_photo_to_minio(
             file_bytes.seek(0)
             content = file_bytes.read()
 
-            # Загружаем в MinIO
-            s3_key = await minio_client.upload_file(
+            # Загружаем в S3
+            s3_key = await s3_client.upload_file(
                 file_bytes=content,
                 object_name=file_name
             )
@@ -112,7 +112,7 @@ async def upload_photo_to_minio(
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.error(
-                    f"Failed to upload photo to MinIO after {max_retries} attempts: {e}",
+                    f"Failed to upload photo to S3 after {max_retries} attempts: {e}",
                     extra={"task_id": str(task_id), "step": step}
                 )
                 return None
