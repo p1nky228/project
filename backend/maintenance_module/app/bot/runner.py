@@ -39,10 +39,16 @@ async def create_bot_and_dispatcher() -> tuple[Bot, Dispatcher]:
     if not settings.BOT_TOKEN:
         raise ValueError("BOT_TOKEN is not set in configuration")
 
-    bot = Bot(
-        token=settings.BOT_TOKEN,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
-    )
+    # Configure proxy if set (for local dev in Russia)
+    bot_kwargs = {
+        "token": settings.BOT_TOKEN,
+        "default": DefaultBotProperties(parse_mode=ParseMode.HTML),
+    }
+    if settings.BOT_PROXY:
+        bot_kwargs["proxy"] = settings.BOT_PROXY
+        logger.info(f"Using proxy for Telegram API: {settings.BOT_PROXY}")
+
+    bot = Bot(**bot_kwargs)
 
     dp = Dispatcher()
 

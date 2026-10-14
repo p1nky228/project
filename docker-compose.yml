@@ -34,7 +34,7 @@ services:
   seaweedfs:
     image: chrislusf/seaweedfs:3.60
     container_name: vending_seaweedfs
-    command: server -s3.port=9000 -master.port=9333 -volume.port=8080 -filer.port=8888 -dir=/data
+    command: ["server", "-s3", "-s3.port=9000", "-master.port=9333", "-volume.port=8080", "-filer.port=8888", "-dir=/data"]
     ports:
       - "9000:9000"
       - "9333:9333"
@@ -45,8 +45,9 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/"]
       interval: 30s
-      timeout: 20s
-      retries: 3
+      timeout: 30s
+      retries: 10
+      start_period: 60s
 
   backend:
     build:
@@ -64,18 +65,18 @@ services:
       - S3_BUCKET_NAME=vending-photos
       - S3_REGION=us-east-1
     ports:
-      - "8000:8000"
+      - "8000:8080"
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
       seaweedfs:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./backend/maintenance_module:/app
-    command: >
-      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    # Override entrypoint for local dev: run only FastAPI with reload
+    entrypoint: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload"]
 
   frontend:
     build:
@@ -109,10 +110,11 @@ services:
       redis:
         condition: service_healthy
       seaweedfs:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./backend/maintenance_module:/app
-    command: python -m app.bot.runner --polling
+    # Override entrypoint for local dev: run only bot
+    entrypoint: ["python", "-m", "app.bot.runner", "--polling"]
 
 volumes:
   postgres_data:

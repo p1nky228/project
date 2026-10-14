@@ -1,0 +1,83 @@
+app = "maintenance-module"
+
+kill_signal = "SIGINT"
+kill_timeout = 5
+
+[build]
+  dockerfile = "backend/maintenance_module/Dockerfile"
+
+[env]
+  # Application
+  APP_NAME = "Vending Machine Service Control"
+  DEBUG = "false"
+  SECRET_KEY = ""
+
+  # Database
+  DATABASE_URL = ""
+  DB_ECHO = "false"
+
+  # Redis
+  REDIS_URL = ""
+
+  # S3 Storage (Cloudflare R2)
+  S3_ENDPOINT_URL = ""
+  S3_ACCESS_KEY = ""
+  S3_SECRET_KEY = ""
+  S3_BUCKET_NAME = ""
+  S3_REGION = ""
+
+  # Telegram Bot
+  TELEGRAM_BOT_TOKEN = ""
+  TELEGRAM_WEBHOOK_URL = ""
+  BOT_USE_POLLING = "true"
+
+  # Admin API Key
+  ADMIN_API_KEY = ""
+
+  # Frontend (if needed by the backend)
+  VITE_API_URL = ""
+  VITE_MAP_CENTER_LAT = ""
+  VITE_MAP_CENTER_LNG = ""
+  VITE_MAP_ZOOM = ""
+
+  # Scheduler
+  SCHEDULER_TIMEZONE = "UTC"
+
+  # Logging
+  LOG_LEVEL = "INFO"
+
+[experimental]
+  allowed_public_ports = []
+  auto_rollback = true
+
+[[services]]
+  http_check = "/health"
+  internal_port = 8080
+  protocol = "tcp"
+  script_check = []
+  port = 80
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls"]
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.tcp_checks]]
+    interval = "10s"
+    timeout = "2s"
+    restart_limit = 0
+
+[deploy]
+  release_command = ""
+
+[mounts]
+  # Uncomment if you need a persistent volume for local storage
+  # src = "data"
+  # dest = "/app/data"
+
+[[statics]]
+  guest_dir = "/app/src"
+  url_prefix = "/src"
+

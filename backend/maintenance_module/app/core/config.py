@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     BOT_TOKEN: str = ""
     BOT_WEBHOOK_URL: Optional[str] = None
     BOT_USE_POLLING: bool = False  # True for local dev without webhook
+    BOT_PROXY: Optional[str] = None  # HTTP/SOCKS5 proxy for Telegram API (e.g., "socks5://user:pass@host:port")
 
     # S3 Storage
     S3_ENDPOINT_URL: str = ""
