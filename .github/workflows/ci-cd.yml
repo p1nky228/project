@@ -173,12 +173,12 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ============================================
-  # DEPLOY TO FLY.IO (Backend + Bot)
+  # DEPLOY TO FLY.IO (Backend + Bot) — если в secrets есть FLY_API_TOKEN
   # ============================================
   deploy-fly:
     name: Deploy to Fly.io
     needs: build-and-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.FLY_API_TOKEN != ''
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -191,6 +191,62 @@ jobs:
         run: flyctl deploy --config fly.toml --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  # ============================================
+  # DEPLOY TO RENDER (Web Service + Worker)
+  # ============================================
+  deploy-render:
+    name: Deploy to Render
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.RENDER_API_KEY != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Render
+        uses: render-composite-action/render-deploy@v1
+        with:
+          apiKey: ${{ secrets.RENDER_API_KEY }}
+          serviceIds: |
+            maintenance-api
+            maintenance-bot
+
+  # ============================================
+  # DEPLOY TO KOYEB (Single Service)
+  # ============================================
+  deploy-koyeb:
+    name: Deploy to Koyeb
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.KOYEB_API_TOKEN != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Koyeb CLI
+        run: |
+          curl -fsSL https://cli.koyeb.com/install.sh | sh
+          echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
+
+      - name: Deploy to Koyeb
+        run: koyeb apply -f koyeb.yaml
+        env:
+          KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          BOT_PROXY: ${{ secrets.BOT_PROXY }}
+          S3_ENDPOINT_URL: ${{ secrets.S3_ENDPOINT_URL }}
+          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+          S3_REGION: ${{ secrets.S3_REGION }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
+          CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
+          SCHEDULER_TIMEZONE: ${{ secrets.SCHEDULER_TIMEZONE }}
+          LOG_LEVEL: ${{ secrets.LOG_LEVEL }}
 
   # ============================================
   # DEPLOY FRONTEND TO VERCEL

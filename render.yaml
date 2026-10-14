@@ -1,0 +1,111 @@
+# Render Deployment Configuration
+# Connect GitHub repo in Render Dashboard → New → Blueprint → this file
+
+services:
+  # -------------------------------------------------------
+  # FastAPI Backend (Web Service)
+  # -------------------------------------------------------
+  - type: web
+    name: maintenance-api
+    runtime: docker
+    dockerfilePath: ./backend/maintenance_module/Dockerfile
+    dockerContext: ./backend/maintenance_module
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+      - key: BOT_USE_POLLING
+        value: "false"
+      - key: BOT_PROXY
+        sync: false
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: S3_BUCKET_NAME
+        value: vending-photos
+      - key: S3_REGION
+        value: auto
+      - key: SECRET_KEY
+        sync: false
+      - key: ADMIN_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: SCHEDULER_TIMEZONE
+        value: Europe/Moscow
+      - key: LOG_LEVEL
+        value: INFO
+      - key: APP_NAME
+        value: "Vending Machine Service Control"
+      - key: DEBUG
+        value: "false"
+    # Override entrypoint for web service (FastAPI only)
+    startCommand: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8080"
+
+  # -------------------------------------------------------
+  # Telegram Bot (Background Worker)
+  # -------------------------------------------------------
+  - type: worker
+    name: maintenance-bot
+    runtime: docker
+    dockerfilePath: ./backend/maintenance_module/Dockerfile
+    dockerContext: ./backend/maintenance_module
+    plan: free
+    region: frankfurt
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+      - key: BOT_USE_POLLING
+        value: "true"
+      - key: BOT_PROXY
+        sync: false
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: S3_BUCKET_NAME
+        value: vending-photos
+      - key: S3_REGION
+        value: auto
+      - key: SECRET_KEY
+        sync: false
+      - key: ADMIN_API_KEY
+        sync: false
+      - key: SCHEDULER_TIMEZONE
+        value: Europe/Moscow
+      - key: LOG_LEVEL
+        value: INFO
+    # Override entrypoint for worker (Bot only)
+    startCommand: python -m app.bot.runner --polling
+
+# -------------------------------------------------------
+# Frontend (Static Site) — настраивается отдельно в Dashboard
+# -------------------------------------------------------
+# Type: Static Site
+# Build Command: cd frontend && npm ci && npm run build
+# Publish Path: frontend/dist
+# Environment Variables:
+#   VITE_API_URL=https://maintenance-api.onrender.com
+#   (или ваш кастомный домен)
+
+# -------------------------------------------------------
+# Databases — используем EXTERNAL (Supabase/Upstash)
+# -------------------------------------------------------
+# databases: []  # не создаём, используем Supabase + Upstash
